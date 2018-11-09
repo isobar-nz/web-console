@@ -12,6 +12,13 @@
             "email": "damian.mooyman@littlegiant.co.nz"
         }
     ],
+    "extra": {
+        "expose": [
+            "webconsole/src/css",
+            "webconsole/src/js",
+            "webconsole/src/vendor"
+        ]
+    },
     "autoload": {
         "psr-4": {
             "TractorCow\\WebConsole\\": "src/"

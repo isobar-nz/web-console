@@ -3,6 +3,8 @@
 namespace TractorCow\WebConsole\Admin;
 
 use SilverStripe\Admin\LeftAndMain;
+use SilverStripe\Control\Controller;
+use SilverStripe\Control\Director;
 use SilverStripe\Security\Permission;
 
 class ConsoleAdmin extends LeftAndMain
@@ -15,5 +17,10 @@ class ConsoleAdmin extends LeftAndMain
     {
         // Only root admins can access this
         return Permission::checkMember($member, 'ADMIN');
+    }
+
+    public function getConsoleLink()
+    {
+        return Controller::join_links(Director::baseURL(), 'webconsole');
     }
 }

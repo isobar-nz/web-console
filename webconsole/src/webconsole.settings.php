@@ -37,4 +37,4 @@ $HOME_DIRECTORY = '';
 //   - jQuery Mouse Wheel Plugin: https://github.com/brandonaaron/jquery-mousewheel
 //   - PHP JSON-RPC 2.0 Server/Client Implementation: https://github.com/sergeyfast/eazy-jsonrpc
 //   - Normalize.css: https://github.com/necolas/normalize.css
-?>
+

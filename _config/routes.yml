@@ -1,0 +1,6 @@
+---
+Name: webconsole-routes
+---
+SilverStripe\Control\Director:
+  rules:
+    'webconsole//$Action/$ID/$OtherID': 'TractorCow\WebConsole\Controllers\ConsoleController'

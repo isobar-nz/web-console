@@ -1,11 +1,11 @@
 (function($) {
     $(document).ready(function() {
-        var settings = {'url': 'webconsole.php',
+        var settings = {'url': 'webconsole/callback',
                         'prompt_path_length': 32,
                         'domain': document.domain || window.location.host,
                         'is_small_window': $(document).width() < 625 ? true : false};
         var environment = {'user': '', 'hostname': '', 'path': ''};
-        var no_login = typeof(__NO_LOGIN__) !== 'undefined' ? __NO_LOGIN__ : false;
+        var no_login = true;
         var silent_mode = false;
 
         // Default banner
