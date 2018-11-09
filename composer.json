@@ -1,0 +1,21 @@
+{
+    "name": "tractorcow/web-console",
+    "description": "CMS shell console for SilverStripe",
+    "type": "silverstripe-vendormodule",
+    "require": {
+        "silverstripe/admin": "^4.1"
+    },
+    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "Damian Mooyman",
+            "email": "damian.mooyman@littlegiant.co.nz"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "TractorCow\\WebConsole\\": "src/"
+        }
+    },
+    "minimum-stability": "dev"
+}
