@@ -28,7 +28,8 @@ function execute_command($command) {
         2 => array('pipe', 'w')  // STDERR
     );
 
-    $process = proc_open($command . ' 2>&1', $descriptors, $pipes);
+    $envs = array_merge($_SERVER, $_ENV);
+    $process = proc_open($command . ' 2>&1', $descriptors, $pipes, null, $envs);
     if (!is_resource($process)) die("Can't execute command.");
 
     // Nothing to push to STDIN
