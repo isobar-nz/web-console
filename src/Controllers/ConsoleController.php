@@ -1,11 +1,5 @@
 <?php
 
-namespace TractorCow\WebConsole\Controllers;
-
-use SilverStripe\Control\Controller;
-use SilverStripe\Security\Permission;
-use SilverStripe\Security\Security;
-
 class ConsoleController extends Controller
 {
     private static $url_segment = 'webconsole';

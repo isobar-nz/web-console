@@ -1,9 +1,9 @@
 {
     "name": "tractorcow/web-console",
     "description": "CMS shell console for SilverStripe",
-    "type": "silverstripe-vendormodule",
+    "type": "silverstripe-module",
     "require": {
-        "silverstripe/admin": "^1.1"
+        "silverstripe/framework": "^3.6"
     },
     "license": "BSD-3-Clause",
     "authors": [
@@ -13,11 +13,7 @@
         }
     ],
     "extra": {
-        "expose": [
-            "webconsole/src/css",
-            "webconsole/src/js",
-            "webconsole/src/vendor"
-        ]
+        "installer-name": "silverstripe-web-console"
     },
     "autoload": {
         "psr-4": {
