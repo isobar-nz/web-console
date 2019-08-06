@@ -13,6 +13,11 @@
         }
     ],
     "extra": {
+        "extra": {
+            "branch-alias": {
+                "dev-master": "2.x-dev"
+            }
+        },
         "expose": [
             "webconsole/src/css",
             "webconsole/src/js",
