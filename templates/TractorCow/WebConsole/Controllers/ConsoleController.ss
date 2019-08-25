@@ -1,10 +1,10 @@
-<% require javascript("tractorcow/web-console:webconsole/src/vendor/jquery.terminal/js/jquery-1.7.1.min.js") %>
-<% require javascript("tractorcow/web-console:webconsole/src/vendor/jquery.terminal/js/jquery.mousewheel-min.js") %>
-<% require javascript("tractorcow/web-console:webconsole/src/vendor/jquery.terminal/js/jquery.terminal-0.11.12.min.js") %>
-<% require javascript("tractorcow/web-console:webconsole/src/js/webconsole.js") %>
-<% require css("tractorcow/web-console:webconsole/src/vendor/normalize/normalize.css") %>
-<% require css("tractorcow/web-console:webconsole/src/vendor/jquery.terminal/css/jquery.terminal-0.11.12.min.css") %>
-<% require css("tractorcow/web-console:webconsole/src/css/webconsole.css") %>
+<% require javascript("isobar-nz/web-console:webconsole/src/vendor/jquery.terminal/js/jquery-1.7.1.min.js") %>
+<% require javascript("isobar-nz/web-console:webconsole/src/vendor/jquery.terminal/js/jquery.mousewheel-min.js") %>
+<% require javascript("isobar-nz/web-console:webconsole/src/vendor/jquery.terminal/js/jquery.terminal-0.11.12.min.js") %>
+<% require javascript("isobar-nz/web-console:webconsole/src/js/webconsole.js") %>
+<% require css("isobar-nz/web-console:webconsole/src/vendor/normalize/normalize.css") %>
+<% require css("isobar-nz/web-console:webconsole/src/vendor/jquery.terminal/css/jquery.terminal-0.11.12.min.css") %>
+<% require css("isobar-nz/web-console:webconsole/src/css/webconsole.css") %>
 <!DOCTYPE html>
 <html class="no-js">
 <head>
