@@ -26,6 +26,8 @@
             banner_extra = '\n                 ' + banner_link + '\n';
         }
 
+        banner_extra += '\nprotip: Use \'stream mycommand\' to run a background task. See \'stream --help\'\n';
+
         // Output
         function show_output(output) {
             if (output) {
@@ -131,6 +133,11 @@
                 method = 'cd';
                 parameters = [command_parsed.args.length ? command_parsed.args[0] : ''];
             }
+            else if (command_parsed.name.toLowerCase() === 'stream') {
+                method = 'stream';
+                var baseCommand = $.trim(command.substring(7));
+                parameters = [baseCommand];
+            }
             else {
                 method = 'run';
                 parameters = [command];
@@ -139,6 +146,7 @@
             if (method) {
                 service_authenticated(terminal, method, parameters, function(result) {
                     update_environment(terminal, result.environment);
+                    console.log(result);
                     show_output(result.output);
                 });
             }
