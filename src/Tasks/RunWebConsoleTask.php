@@ -51,12 +51,9 @@ class RunWebConsoleTask extends BuildTask
             2 => array('pipe', 'w')  // STDERR
         );
 
-        $envs = array_merge($_SERVER, $_ENV);
-        foreach($envs as $key => $value) {
-            if (is_array($value)) {
-                unset($envs[$key]);
-            }
-        }
+        $envs = array_filter(array_merge($_SERVER, $_ENV), function($item) {
+            return !is_array($item);
+        });
 
         $fullCommand = $command . ' 2>&1 1> ' . escapeshellarg($logto);
         $process = proc_open(
