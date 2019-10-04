@@ -3,7 +3,8 @@
     "description": "CMS shell console for SilverStripe",
     "type": "silverstripe-vendormodule",
     "require": {
-        "silverstripe/admin": "^1.1"
+        "silverstripe/admin": "^1.1",
+        "symfony/process": "^3|^4"
     },
     "license": "BSD-3-Clause",
     "authors": [

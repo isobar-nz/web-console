@@ -6,6 +6,7 @@ use BadMethodCallException;
 use SilverStripe\Assets\Filesystem;
 use SilverStripe\Core\Path;
 use SilverStripe\ORM\DataObject;
+use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\ORM\ValidationException;
 use SilverStripe\Security\Member;
 
@@ -18,6 +19,8 @@ use SilverStripe\Security\Member;
  * @property string $Output
  * @property int    $ExitCode
  * @property int    $StartedByID
+ * @property string $Started
+ * @property string $Finished
  * @method Member StartedBy()
  */
 class BackgroundTask extends DataObject
@@ -35,6 +38,8 @@ class BackgroundTask extends DataObject
         'Command'  => 'Text', // Command
         'Path'     => 'Text', // CWD
         'Output'   => 'Text', // Output
+        'Started'  => 'DBDatetime',
+        'Finished' => 'DBDatetime',
         'ExitCode' => 'Int', // Response integer (0 is success)
     ];
 
@@ -95,6 +100,7 @@ class BackgroundTask extends DataObject
             throw new BadMethodCallException('Cannot start a task unless it is Ready');
         }
 
+        $this->Started = DBDatetime::now()->getValue();
         $this->Status = self::STARTED;
         $this->write();
     }
@@ -109,6 +115,7 @@ class BackgroundTask extends DataObject
     {
         // Record exit status
         $this->ExitCode = $code;
+        $this->Finished = DBDatetime::now()->getValue();
         $this->Status = self::FINISHED;
 
         // Migrate file content to output field, then delete the file path

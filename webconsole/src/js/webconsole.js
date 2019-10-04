@@ -12,7 +12,7 @@
         var banner_main = "Web Console";
         var banner_link = 'http://web-console.org';
         var banner_extra = banner_link + '\n';
-        var buffer_delay = 3000; // 3 seconds per poll
+        var buffer_delay = 2500; // 2.5 seconds per poll
 
         // Big banner
         if (!settings.is_small_window) {

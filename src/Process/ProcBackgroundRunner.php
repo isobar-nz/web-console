@@ -6,6 +6,7 @@ use Exception;
 use SilverStripe\Core\Environment;
 use SilverStripe\ORM\ValidationException;
 use SilverStripe\Security\Security;
+use Symfony\Component\Process\Process;
 use TractorCow\WebConsole\Model\BackgroundTask;
 
 class ProcBackgroundRunner implements BackgroundRunner
@@ -42,15 +43,15 @@ class ProcBackgroundRunner implements BackgroundRunner
     }
 
     /**
-     * @param $task
-     * @param $pipes
-     * @throws Exception
+     * @param BackgroundTask $task
      * @return int
      */
     protected function startTask($task)
     {
         // Build inner command to offload responsibility to the dev task
         $cliScriptPath = BASE_PATH . '/vendor/silverstripe/framework/cli-script.php';
+
+        // Use '&' to run in background
         $runnerCommand = sprintf(
             "%s %s dev/tasks/RunWebConsoleTask task=%d &",
             $this->getPHPBinary(),
@@ -58,36 +59,11 @@ class ProcBackgroundRunner implements BackgroundRunner
             $task->ID
         );
 
-        // @todo - Move to symfony/process
+        // Disable output so the background task runs
+        $process = new Process($runnerCommand, BASE_PATH);
+        $process->disableOutput();
+        $result = $process->run();
 
-        // Create background task and run
-        $descriptors = array(
-            0 => array('pipe', 'r'), // STDIN
-            1 => array('pipe', 'w'), // STDOUT
-            2 => array('pipe', 'w')  // STDERR
-        );
-        $envs = array_filter(array_merge($_SERVER, $_ENV), function($item) {
-            return !is_array($item);
-        });
-
-        // Execute and close
-        $process = proc_open(
-            $runnerCommand,
-            $descriptors,
-            $pipes,
-            BASE_PATH,
-            $envs
-        );
-        if (!is_resource($process)) {
-            throw new Exception("Could not run task");
-        }
-
-        // Don't ask why, but stream_get_contents is important here
-        stream_get_contents($pipes[1]);
-        stream_get_contents($pipes[2]);
-        fclose($pipes[0]);
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        return proc_close($process);
+        return $result;
     }
 }
