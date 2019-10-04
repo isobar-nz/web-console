@@ -4,8 +4,11 @@ namespace Tasks;
 
 use Exception;
 use SilverStripe\Control\Director;
+use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Core\Convert;
+use SilverStripe\Core\Environment;
 use SilverStripe\Dev\BuildTask;
+use SilverStripe\ORM\ValidationException;
 use SilverStripe\View\HTML;
 use TractorCow\WebConsole\Model\BackgroundTask;
 
@@ -18,8 +21,25 @@ class RunWebConsoleTask extends BuildTask
     protected $description = 'Processes a background webconsole task. This should not be run directly.';
 
     /**
-     * @param \SilverStripe\Control\HTTPRequest $request
-     * @throws \SilverStripe\ORM\ValidationException
+     * Set a safe hard-limit of 1 hour per task
+     *
+     * @config
+     * @var int
+     */
+    private static $time_limit = 3600;
+
+    /**
+     * No max memory limit
+     *
+     * @config
+     * @var int
+     */
+    private static $memory_limit = -1;
+
+    /**
+     * @param HTTPRequest $request
+     * @throws ValidationException
+     * @throws Exception
      */
     public function run($request)
     {
@@ -40,6 +60,10 @@ class RunWebConsoleTask extends BuildTask
             $this->message('This task is not ready to be started');
             return;
         }
+
+        // Set environment limits
+        Environment::increaseTimeLimitTo($this->config()->get('time_limit'));
+        Environment::increaseMemoryLimitTo($this->config()->get('memory_limit'));
 
         // Mark task as started
         $task->start();
