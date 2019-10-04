@@ -35,7 +35,7 @@ class BackgroundTask extends DataObject
         'Command'  => 'Text', // Command
         'Path'     => 'Text', // CWD
         'Output'   => 'Text', // Output
-        'ExitCode' => 'Int', // Response integer (1 is success)
+        'ExitCode' => 'Int', // Response integer (0 is success)
     ];
 
     private static $has_one = [
@@ -82,6 +82,21 @@ class BackgroundTask extends DataObject
         if ($path && file_exists($path)) {
             return file_get_contents($path);
         }
+    }
+
+    /**
+     * Start a task
+     *
+     * @throws ValidationException
+     */
+    public function start()
+    {
+        if ($this->Status !== self::READY) {
+            throw new BadMethodCallException('Cannot start a task unless it is Ready');
+        }
+
+        $this->Status = self::STARTED;
+        $this->write();
     }
 
     /**

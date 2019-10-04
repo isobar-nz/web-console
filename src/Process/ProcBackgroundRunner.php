@@ -58,6 +58,8 @@ class ProcBackgroundRunner implements BackgroundRunner
             $task->ID
         );
 
+        // @todo - Move to symfony/process
+
         // Create background task and run
         $descriptors = array(
             0 => array('pipe', 'r'), // STDIN

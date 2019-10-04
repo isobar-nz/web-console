@@ -12,6 +12,7 @@
         var banner_main = "Web Console";
         var banner_link = 'http://web-console.org';
         var banner_extra = banner_link + '\n';
+        var buffer_delay = 3000; // 3 seconds per poll
 
         // Big banner
         if (!settings.is_small_window) {
@@ -121,6 +122,43 @@
             }
         }
 
+        // Poll for output on stream
+        function buffer_stream(terminal, result, completed) {
+          switch (result.status) {
+            case 'Error':
+              show_output(result.output);
+              terminal.enable();
+              break;
+            case 'Ready':
+              // With ready status, we have no output yet, so trigger for first poll
+              get_more_stream(terminal, result.task, completed);
+              terminal.disable();
+              break;
+            case 'Started':
+            case 'Finished':
+              // Show only new stream output
+              var output = result.output.substring(completed);
+              show_output(output);
+
+              // Poll for new output (5 seconds delay)
+              if (result.status === 'Started') {
+                get_more_stream(terminal, result.task, completed + output.length);
+              } else {
+                terminal.enable();
+              }
+              break;
+          }
+        }
+
+        // Query for more output after a delay
+        function get_more_stream(terminal, task, completed) {
+          setTimeout(function () {
+            service_authenticated(terminal, 'stream_update', [task], function(result) {
+              buffer_stream(terminal, result, completed);
+            });
+          }, buffer_delay);
+        }
+
         // Interpreter
         function interpreter(command, terminal) {
             command = $.trim(command || '');
@@ -136,6 +174,14 @@
             else if (command_parsed.name.toLowerCase() === 'stream') {
                 method = 'stream';
                 var baseCommand = $.trim(command.substring(7));
+
+                // Check if '--help'
+                if (baseCommand === '--help') {
+                  show_output('stream will let you run long running commands, showing output every ' + buffer_delay + ' milliseconds. E.g.');
+                  show_output('stream for i in {1..9}; do echo "hi" && sleep 1; done');
+                  return;
+                }
+
                 parameters = [baseCommand];
             }
             else {
@@ -146,8 +192,12 @@
             if (method) {
                 service_authenticated(terminal, method, parameters, function(result) {
                     update_environment(terminal, result.environment);
-                    console.log(result);
-                    show_output(result.output);
+                    if (method === 'stream') {
+                      // Stream output until complete
+                      buffer_stream(terminal, result, 0);
+                    } else {
+                      show_output(result.output);
+                    }
                 });
             }
         }

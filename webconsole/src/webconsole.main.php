@@ -1,6 +1,7 @@
 <?php
 // Initializing
 use SilverStripe\Core\Injector\Injector;
+use TractorCow\WebConsole\Model\BackgroundTask;
 use TractorCow\WebConsole\Process\BackgroundRunner;
 
 if (!isset($NO_LOGIN)) $NO_LOGIN = false;
@@ -273,8 +274,8 @@ class WebConsoleRPCServer extends BaseJsonRpcServer
      * blockind and returning the output
      *
      * @param string $token
-     * @param $environment
-     * @param $command
+     * @param array  $environment
+     * @param string $command
      * @return array
      */
     public function stream($token, $environment, $command)
@@ -290,6 +291,36 @@ class WebConsoleRPCServer extends BaseJsonRpcServer
         return [
             'output' => "Begin long running process\n",
             'task'   => $task->ID,
+            'status' => $task->Status,
+        ];
+    }
+
+    /**
+     * Get update content for a long-running task
+     *
+     * @param string $token
+     * @param array  $environment
+     * @param int    $taskID
+     * @return array
+     */
+    public function stream_update($token, $environment, $taskID)
+    {
+        $result = $this->initialize($token, $environment);
+        if ($result) return $result;
+
+        /** @var BackgroundTask $task */
+        $task = BackgroundTask::get()->byID($taskID);
+        if (!$task) {
+            return [
+                'output' => 'No task',
+                'task'   => $taskID,
+                'status' => 'Error',
+            ];
+        }
+
+        return [
+            'output' => $task->getOutput(),
+            'task'   => $taskID,
             'status' => $task->Status,
         ];
     }

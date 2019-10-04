@@ -2,6 +2,7 @@
 
 namespace Tasks;
 
+use Exception;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\Convert;
 use SilverStripe\Dev\BuildTask;
@@ -40,9 +41,15 @@ class RunWebConsoleTask extends BuildTask
             return;
         }
 
+        // Mark task as started
+        $task->start();
+
         // Create path to standard output
         $logto = $task->getOutputPath();
         $command = $task->Command;
+        $fullCommand = $command . ' > ' . escapeshellarg($logto) . ' 2>&1';
+
+        // @todo Move to symfony/process
 
         // Create background task and run
         $descriptors = array(
@@ -51,11 +58,10 @@ class RunWebConsoleTask extends BuildTask
             2 => array('pipe', 'w')  // STDERR
         );
 
-        $envs = array_filter(array_merge($_SERVER, $_ENV), function($item) {
+        $envs = array_filter(array_merge($_SERVER, $_ENV), function ($item) {
             return !is_array($item);
         });
 
-        $fullCommand = $command . ' 2>&1 1> ' . escapeshellarg($logto);
         $process = proc_open(
             $fullCommand,
             $descriptors,
@@ -63,9 +69,13 @@ class RunWebConsoleTask extends BuildTask
             $task->Path,
             $envs
         );
-        if (!is_resource($process)) die("Can't execute command.");
+        if (!is_resource($process)) {
+            throw new Exception("Could not run task");
+        }
 
-        // Close streams
+        // Don't ask why, but stream_get_contents is important here
+        stream_get_contents($pipes[1]);
+        stream_get_contents($pipes[2]);
         fclose($pipes[0]);
         fclose($pipes[1]);
         fclose($pipes[2]);
@@ -73,6 +83,12 @@ class RunWebConsoleTask extends BuildTask
         // All pipes must be closed before "proc_close"
         $code = proc_close($process);
         $task->complete($code);
+
+        if ($code) {
+            $this->message('Task completed with error');
+        } else {
+            $this->message('Task completed successfully');
+        }
     }
 
     /**
