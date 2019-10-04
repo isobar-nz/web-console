@@ -12,7 +12,8 @@
         var banner_main = "Web Console";
         var banner_link = 'http://web-console.org';
         var banner_extra = banner_link + '\n';
-        var buffer_delay = 2500; // 2.5 seconds per poll
+        var buffer_delay = 5000; // 5 seconds per poll
+        var buffer_delay_first = 1000; // 1 second for first poll
 
         // Big banner
         if (!settings.is_small_window) {
@@ -161,7 +162,7 @@
               terminal.pause();
 
               // With ready status, we have no output yet, so trigger for first poll
-              get_more_stream(terminal, result.task, start_index);
+              get_more_stream(terminal, result.task, start_index, buffer_delay_first);
               break;
             case 'Started':
               // Ensure terminal is still paused
@@ -171,7 +172,7 @@
               print_stream(terminal, result.output, start_index);
 
               // Poll for new output (5 seconds delay)
-              get_more_stream(terminal, result.task, start_index);
+              get_more_stream(terminal, result.task, start_index, buffer_delay);
               break;
             case 'Finished':
               // Print last bit of output, and restart terminal
@@ -182,12 +183,12 @@
         }
 
         // Query for more output after a delay
-        function get_more_stream(terminal, task, start_index) {
+        function get_more_stream(terminal, task, start_index, delay) {
           setTimeout(function () {
             service_authenticated(terminal, 'stream_update', [task], function(result) {
               buffer_stream(terminal, result, start_index);
             });
-          }, buffer_delay);
+          }, delay);
         }
 
         // Interpreter
