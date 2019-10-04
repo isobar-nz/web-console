@@ -32,12 +32,17 @@
         // Output
         function show_output(output) {
             if (output) {
-                if (typeof output === 'string') terminal.echo(output);
-                else if (output instanceof Array) terminal.echo($.map(output, function(object) {
-                                                      return $.json_stringify(object);
-                                                  }).join(' '));
-                else if (typeof output === 'object') terminal.echo($.json_stringify(output));
-                else terminal.echo(output);
+                if (typeof output === 'string') {
+                  terminal.echo(output);
+                } else if (output instanceof Array) {
+                  terminal.echo($.map(output, function(object) {
+                    return $.json_stringify(object);
+                  }).join(' '));
+                } else if (typeof output === 'object') {
+                  terminal.echo($.json_stringify(output));
+                } else {
+                  terminal.echo(output);
+                }
             }
         }
 
@@ -122,39 +127,65 @@
             }
         }
 
+      /**
+       *
+       * @param {Object} terminal
+       * @param {String} output String output to set
+       * @param {Number} start_index Line number on the terminal where we started printing content
+       */
+        function print_stream(terminal, output, start_index) {
+          // Echo output line at a time
+          var lines = output.split('\n');
+          var current_index = terminal.last_index();
+          for (var index = 0; index < lines.length; index++) {
+            // Either we update an existing line, or print a new one
+            if (index < current_index - start_index) {
+              // Update existing line
+              terminal.update(1 + start_index + index, lines[index]);
+            } else {
+              // Push new line
+              terminal.echo(lines[index]);
+            }
+          }
+        }
+
         // Poll for output on stream
-        function buffer_stream(terminal, result, completed) {
+        function buffer_stream(terminal, result, start_index) {
           switch (result.status) {
             case 'Error':
               show_output(result.output);
-              terminal.enable();
+              terminal.resume();
               break;
             case 'Ready':
+              // Pause terminal
+              terminal.pause();
+
               // With ready status, we have no output yet, so trigger for first poll
-              get_more_stream(terminal, result.task, completed);
-              terminal.disable();
+              get_more_stream(terminal, result.task, start_index);
               break;
             case 'Started':
-            case 'Finished':
-              // Show only new stream output
-              var output = result.output.substring(completed);
-              show_output(output);
+              // Ensure terminal is still paused
+              terminal.pause();
+
+              // Update output
+              print_stream(terminal, result.output, start_index);
 
               // Poll for new output (5 seconds delay)
-              if (result.status === 'Started') {
-                get_more_stream(terminal, result.task, completed + output.length);
-              } else {
-                terminal.enable();
-              }
+              get_more_stream(terminal, result.task, start_index);
+              break;
+            case 'Finished':
+              // Print last bit of output, and restart terminal
+              print_stream(terminal, result.output, start_index);
+              terminal.resume();
               break;
           }
         }
 
         // Query for more output after a delay
-        function get_more_stream(terminal, task, completed) {
+        function get_more_stream(terminal, task, start_index) {
           setTimeout(function () {
             service_authenticated(terminal, 'stream_update', [task], function(result) {
-              buffer_stream(terminal, result, completed);
+              buffer_stream(terminal, result, start_index);
             });
           }, buffer_delay);
         }
@@ -194,7 +225,7 @@
                     update_environment(terminal, result.environment);
                     if (method === 'stream') {
                       // Stream output until complete
-                      buffer_stream(terminal, result, 0);
+                      buffer_stream(terminal, result, terminal.last_index());
                     } else {
                       show_output(result.output);
                     }
