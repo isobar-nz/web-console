@@ -9,6 +9,7 @@ use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\ORM\ValidationException;
 use SilverStripe\Security\Member;
+use SilverStripe\Security\Permission;
 
 /**
  * Represents a task that runs in the background
@@ -33,6 +34,8 @@ class BackgroundTask extends DataObject
 
     const FINISHED = 'Finished';
 
+    private static $default_sort = '"WebConsole_BackgroundTask"."ID" DESC';
+
     private static $db = [
         'Status'   => "Enum('Ready,Started,Finished','Ready')",
         'Command'  => 'Text', // Command
@@ -47,9 +50,52 @@ class BackgroundTask extends DataObject
         'StartedBy' => Member::class,
     ];
 
+    private static $summary_fields = [
+        'Command'    => 'Command',
+        'Created'    => 'Created',
+        'NiceStatus' => 'Status',
+        'Duration'   => 'Duration (h:m:s)'
+    ];
+
     private static $defaults = [
         'Status' => 'Ready',
     ];
+
+    public function getTitle()
+    {
+        return $this->Command;
+    }
+
+    public function getNiceStatus()
+    {
+        if ($this->Status === self::FINISHED) {
+            return $this->ExitCode ? 'Finished (error)' : 'Finished (success)';
+        }
+
+        return $this->Status;
+    }
+
+    public function getDuration()
+    {
+        if ($this->Status !== self::FINISHED) {
+            return null;
+        }
+
+        $seconds = $this->dbObject('Finished')->getTimestamp()
+            - $this->dbObject('Started')->getTimestamp();
+        if (!$seconds) {
+            return null;
+        }
+
+        // Lazy time calc
+        $secs = $seconds % 60;
+        $minutes = ($seconds - $secs) / 60;
+        $mins = $minutes % 60;
+        $hours = ($minutes - $mins) / 60;
+
+        // Relative time
+        return "{$hours}:{$mins}:{$secs}";
+    }
 
     /**
      * Get path to output file.
@@ -130,5 +176,15 @@ class BackgroundTask extends DataObject
         }
 
         $this->write();
+    }
+
+    public function canEdit($member = null)
+    {
+        return false;
+    }
+
+    public function canDelete($member = null)
+    {
+        return Permission::checkMember($member, 'ADMIN');
     }
 }
