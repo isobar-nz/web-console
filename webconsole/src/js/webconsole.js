@@ -12,8 +12,8 @@
         var banner_main = "Web Console";
         var banner_link = 'http://web-console.org';
         var banner_extra = banner_link + '\n';
-        var buffer_delay = 5000; // 5 seconds per poll
-        var buffer_delay_first = 1000; // 1 second for first poll
+        var buffer_delay = 10000; // 10 seconds per poll
+        var buffer_delay_first = 3000; // 3 second for first poll
 
         // Big banner
         if (!settings.is_small_window) {
@@ -138,7 +138,13 @@
           // Echo output line at a time
           var lines = output.split('\n');
           var current_index = terminal.last_index();
-          for (var index = 0; index < lines.length; index++) {
+          // Only start printing at first line, or last line printer, whichever is largest
+          // We need to re-print last line in case that line was incomplete at last query
+          for (
+            var index = Math.max(0, current_index - start_index - 1);
+            index < lines.length;
+            index++
+          ) {
             // Either we update an existing line, or print a new one
             if (index < current_index - start_index) {
               // Update existing line
@@ -182,9 +188,12 @@
           }
         }
 
+        var stream_timeout = null;
+
         // Query for more output after a delay
         function get_more_stream(terminal, task, start_index, delay) {
-          setTimeout(function () {
+          clearTimeout(stream_timeout);
+          stream_timeout = setTimeout(function () {
             service_authenticated(terminal, 'stream_update', [task], function(result) {
               buffer_stream(terminal, result, start_index);
             });
