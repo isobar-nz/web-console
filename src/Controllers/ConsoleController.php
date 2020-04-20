@@ -30,5 +30,8 @@ class ConsoleController extends Controller
         // Handle passthrough
         include __DIR__ . '/../../webconsole/src/webconsole.includes.php';
         include __DIR__ . '/../../webconsole/src/webconsole.main.php';
+
+        // This is important; This library isn't designed to work within silverstripe
+        die;
     }
 }

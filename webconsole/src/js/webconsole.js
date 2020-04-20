@@ -12,6 +12,8 @@
         var banner_main = "Web Console";
         var banner_link = 'http://web-console.org';
         var banner_extra = banner_link + '\n';
+        var buffer_delay = 10000; // 10 seconds per poll
+        var buffer_delay_first = 3000; // 3 second for first poll
 
         // Big banner
         if (!settings.is_small_window) {
@@ -26,15 +28,22 @@
             banner_extra = '\n                 ' + banner_link + '\n';
         }
 
+        banner_extra += '\nprotip: Use \'stream mycommand\' to run a background task. See \'stream --help\'\n';
+
         // Output
         function show_output(output) {
             if (output) {
-                if (typeof output === 'string') terminal.echo(output);
-                else if (output instanceof Array) terminal.echo($.map(output, function(object) {
-                                                      return $.json_stringify(object);
-                                                  }).join(' '));
-                else if (typeof output === 'object') terminal.echo($.json_stringify(output));
-                else terminal.echo(output);
+                if (typeof output === 'string') {
+                  terminal.echo(output);
+                } else if (output instanceof Array) {
+                  terminal.echo($.map(output, function(object) {
+                    return $.json_stringify(object);
+                  }).join(' '));
+                } else if (typeof output === 'object') {
+                  terminal.echo($.json_stringify(output));
+                } else {
+                  terminal.echo(output);
+                }
             }
         }
 
@@ -119,6 +128,78 @@
             }
         }
 
+      /**
+       *
+       * @param {Object} terminal
+       * @param {String} output String output to set
+       * @param {Number} start_index Line number on the terminal where we started printing content
+       */
+        function print_stream(terminal, output, start_index) {
+          // Echo output line at a time
+          var lines = output.split('\n');
+          var current_index = terminal.last_index();
+          // Only start printing at first line, or last line printer, whichever is largest
+          // We need to re-print last line in case that line was incomplete at last query
+          for (
+            var index = Math.max(0, current_index - start_index - 1);
+            index < lines.length;
+            index++
+          ) {
+            // Either we update an existing line, or print a new one
+            if (index < current_index - start_index) {
+              // Update existing line
+              terminal.update(1 + start_index + index, lines[index]);
+            } else {
+              // Push new line
+              terminal.echo(lines[index]);
+            }
+          }
+        }
+
+        // Poll for output on stream
+        function buffer_stream(terminal, result, start_index) {
+          switch (result.status) {
+            case 'Error':
+              show_output(result.output);
+              terminal.resume();
+              break;
+            case 'Ready':
+              // Pause terminal
+              terminal.pause();
+
+              // With ready status, we have no output yet, so trigger for first poll
+              get_more_stream(terminal, result.task, start_index, buffer_delay_first);
+              break;
+            case 'Started':
+              // Ensure terminal is still paused
+              terminal.pause();
+
+              // Update output
+              print_stream(terminal, result.output, start_index);
+
+              // Poll for new output (5 seconds delay)
+              get_more_stream(terminal, result.task, start_index, buffer_delay);
+              break;
+            case 'Finished':
+              // Print last bit of output, and restart terminal
+              print_stream(terminal, result.output, start_index);
+              terminal.resume();
+              break;
+          }
+        }
+
+        var stream_timeout = null;
+
+        // Query for more output after a delay
+        function get_more_stream(terminal, task, start_index, delay) {
+          clearTimeout(stream_timeout);
+          stream_timeout = setTimeout(function () {
+            service_authenticated(terminal, 'stream_update', [task], function(result) {
+              buffer_stream(terminal, result, start_index);
+            });
+          }, delay);
+        }
+
         // Interpreter
         function interpreter(command, terminal) {
             command = $.trim(command || '');
@@ -131,6 +212,19 @@
                 method = 'cd';
                 parameters = [command_parsed.args.length ? command_parsed.args[0] : ''];
             }
+            else if (command_parsed.name.toLowerCase() === 'stream') {
+                method = 'stream';
+                var baseCommand = $.trim(command.substring(7));
+
+                // Check if '--help'
+                if (baseCommand === '--help') {
+                  show_output('stream will let you run long running commands, showing output every ' + buffer_delay + ' milliseconds. E.g.');
+                  show_output('stream for i in {1..9}; do echo "hi" && sleep 1; done');
+                  return;
+                }
+
+                parameters = [baseCommand];
+            }
             else {
                 method = 'run';
                 parameters = [command];
@@ -139,7 +233,12 @@
             if (method) {
                 service_authenticated(terminal, method, parameters, function(result) {
                     update_environment(terminal, result.environment);
-                    show_output(result.output);
+                    if (method === 'stream') {
+                      // Stream output until complete
+                      buffer_stream(terminal, result, terminal.last_index());
+                    } else {
+                      show_output(result.output);
+                    }
                 });
             }
         }

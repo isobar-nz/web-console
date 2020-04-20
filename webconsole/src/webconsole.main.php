@@ -1,5 +1,9 @@
 <?php
 // Initializing
+use SilverStripe\Core\Injector\Injector;
+use TractorCow\WebConsole\Model\BackgroundTask;
+use TractorCow\WebConsole\Process\BackgroundRunner;
+
 if (!isset($NO_LOGIN)) $NO_LOGIN = false;
 if (!isset($ACCOUNTS)) $ACCOUNTS = array();
 if (isset($USER) && isset($PASSWORD) && $USER && $PASSWORD) $ACCOUNTS[$USER] = $PASSWORD;
@@ -8,20 +12,24 @@ if (!isset($HOME_DIRECTORY)) $HOME_DIRECTORY = '';
 $IS_CONFIGURED = ($NO_LOGIN || count($ACCOUNTS) >= 1) ? true : false;
 
 // Utilities
-function is_empty_string($string) {
+function is_empty_string($string)
+{
     return strlen($string) <= 0;
 }
 
-function is_equal_strings($string1, $string2) {
+function is_equal_strings($string1, $string2)
+{
     return strcmp($string1, $string2) == 0;
 }
 
-function get_hash($algorithm, $string) {
-    return hash($algorithm, trim((string) $string));
+function get_hash($algorithm, $string)
+{
+    return hash($algorithm, trim((string)$string));
 }
 
 // Command execution
-function execute_command($command) {
+function execute_command($command)
+{
     $descriptors = array(
         0 => array('pipe', 'r'), // STDIN
         1 => array('pipe', 'w'), // STDOUT
@@ -48,8 +56,9 @@ function execute_command($command) {
 }
 
 // Command parsing
-function parse_command($command) {
-    $value = ltrim((string) $command);
+function parse_command($command)
+{
+    $value = ltrim((string)$command);
 
     if (!is_empty_string($value)) {
         $values = explode(' ', $value);
@@ -71,17 +80,20 @@ function parse_command($command) {
 }
 
 // RPC Server
-class WebConsoleRPCServer extends BaseJsonRpcServer {
+class WebConsoleRPCServer extends BaseJsonRpcServer
+{
     protected $home_directory = '';
 
-    private function error($message) {
+    private function error($message)
+    {
         throw new Exception($message);
     }
 
     // Authentication
-    private function authenticate_user($user, $password) {
-        $user = trim((string) $user);
-        $password = trim((string) $password);
+    private function authenticate_user($user, $password)
+    {
+        $user = trim((string)$user);
+        $password = trim((string)$password);
 
         if ($user && $password) {
             global $ACCOUNTS, $PASSWORD_HASH_ALGORITHM;
@@ -97,16 +109,17 @@ class WebConsoleRPCServer extends BaseJsonRpcServer {
         throw new Exception("Incorrect user or password");
     }
 
-    private function authenticate_token($token) {
+    private function authenticate_token($token)
+    {
         global $NO_LOGIN;
         if ($NO_LOGIN) return true;
 
-        $token = trim((string) $token);
+        $token = trim((string)$token);
         $token_parts = explode(':', $token, 2);
 
         if (count($token_parts) == 2) {
-            $user = trim((string) $token_parts[0]);
-            $password_hash = trim((string) $token_parts[1]);
+            $user = trim((string)$token_parts[0]);
+            $password_hash = trim((string)$token_parts[1]);
 
             if ($user && $password_hash) {
                 global $ACCOUNTS;
@@ -121,40 +134,42 @@ class WebConsoleRPCServer extends BaseJsonRpcServer {
         throw new Exception("Incorrect user or password");
     }
 
-    private function get_home_directory($user) {
+    private function get_home_directory($user)
+    {
         global $HOME_DIRECTORY;
 
         if (is_string($HOME_DIRECTORY)) {
             if (!is_empty_string($HOME_DIRECTORY)) return $HOME_DIRECTORY;
-        }
-        else if (is_string($user) && !is_empty_string($user) && isset($HOME_DIRECTORY[$user]) && !is_empty_string($HOME_DIRECTORY[$user]))
+        } else if (is_string($user) && !is_empty_string($user) && isset($HOME_DIRECTORY[$user]) && !is_empty_string($HOME_DIRECTORY[$user]))
             return $HOME_DIRECTORY[$user];
 
         return getcwd();
     }
 
     // Environment
-    private function get_environment() {
+    private function get_environment()
+    {
         $hostname = function_exists('gethostname') ? gethostname() : null;
         return array('path' => getcwd(), 'hostname' => $hostname);
     }
 
-    private function set_environment($environment) {
-        $environment = !empty($environment) ? (array) $environment : array();
+    private function set_environment($environment)
+    {
+        $environment = !empty($environment) ? (array)$environment : array();
         $path = (isset($environment['path']) && !is_empty_string($environment['path'])) ? $environment['path'] : $this->home_directory;
 
         if (!is_empty_string($path)) {
             if (is_dir($path)) {
-                if (!@chdir($path)) return array('output' => "Unable to change directory to current working directory, updating current directory",
+                if (!@chdir($path)) return array('output'      => "Unable to change directory to current working directory, updating current directory",
                                                  'environment' => $this->get_environment());
-            }
-            else return array('output' => "Current working directory not found, updating current directory",
-                              'environment' => $this->get_environment());
+            } else return array('output'      => "Current working directory not found, updating current directory",
+                                'environment' => $this->get_environment());
         }
     }
 
     // Initialization
-    private function initialize($token, $environment) {
+    private function initialize($token, $environment)
+    {
         $user = $this->authenticate_token($token);
         $this->home_directory = $this->get_home_directory($user);
         $result = $this->set_environment($environment);
@@ -163,37 +178,39 @@ class WebConsoleRPCServer extends BaseJsonRpcServer {
     }
 
     // Methods
-    public function login($user, $password) {
-        $result = array('token' => $this->authenticate_user($user, $password),
+    public function login($user, $password)
+    {
+        $result = array('token'       => $this->authenticate_user($user, $password),
                         'environment' => $this->get_environment());
 
         $home_directory = $this->get_home_directory($user);
         if (!is_empty_string($home_directory)) {
             if (is_dir($home_directory)) $result['environment']['path'] = $home_directory;
-            else $result['output'] = "Home directory not found: ". $home_directory;
+            else $result['output'] = "Home directory not found: " . $home_directory;
         }
 
         return $result;
     }
 
-    public function cd($token, $environment, $path) {
+    public function cd($token, $environment, $path)
+    {
         $result = $this->initialize($token, $environment);
         if ($result) return $result;
 
-        $path = trim((string) $path);
+        $path = trim((string)$path);
         if (is_empty_string($path)) $path = $this->home_directory;
 
         if (!is_empty_string($path)) {
             if (is_dir($path)) {
-                if (!@chdir($path)) return array('output' => "cd: ". $path . ": Unable to change directory");
-            }
-            else return array('output' => "cd: ". $path . ": No such directory");
+                if (!@chdir($path)) return array('output' => "cd: " . $path . ": Unable to change directory");
+            } else return array('output' => "cd: " . $path . ": No such directory");
         }
 
         return array('environment' => $this->get_environment());
     }
 
-    public function completion($token, $environment, $pattern, $command) {
+    public function completion($token, $environment, $pattern, $command)
+    {
         $result = $this->initialize($token, $environment);
         if ($result) return $result;
 
@@ -212,10 +229,8 @@ class WebConsoleRPCServer extends BaseJsonRpcServer {
                     $scan_path = $completion_prefix = $pattern;
                     if (substr($completion_prefix, -1) != '/') $completion_prefix .= '/';
                 }
-            }
-            else $scan_path = getcwd();
-        }
-        else $scan_path = getcwd();
+            } else $scan_path = getcwd();
+        } else $scan_path = getcwd();
 
         if (!empty($scan_path)) {
             // Loading directory listing
@@ -230,7 +245,8 @@ class WebConsoleRPCServer extends BaseJsonRpcServer {
             // Pattern
             if (!empty($pattern) && !empty($completion)) {
                 // For PHP version that does not support anonymous functions (available since PHP 5.3.0)
-                function filter_pattern($value) {
+                function filter_pattern($value)
+                {
                     global $pattern;
                     return !strncmp($pattern, $value, strlen($pattern));
                 }
@@ -242,7 +258,8 @@ class WebConsoleRPCServer extends BaseJsonRpcServer {
         return array('completion' => $completion);
     }
 
-    public function run($token, $environment, $command) {
+    public function run($token, $environment, $command)
+    {
         $result = $this->initialize($token, $environment);
         if ($result) return $result;
 
@@ -251,43 +268,102 @@ class WebConsoleRPCServer extends BaseJsonRpcServer {
 
         return array('output' => $output);
     }
+
+    /**
+     * Like "run" but returns a token for streaming subsequent output, rather than
+     * blockind and returning the output
+     *
+     * @param string $token
+     * @param array  $environment
+     * @param string $command
+     * @return array
+     */
+    public function stream($token, $environment, $command)
+    {
+        $result = $this->initialize($token, $environment);
+        if ($result) return $result;
+
+        /** @var BackgroundRunner $runner */
+        $runner = Injector::inst()->get(BackgroundRunner::class);
+        $path = getcwd();
+        $task = $runner->run($command, $path);
+
+        return [
+            'output' => "Begin long running process\n",
+            'task'   => $task->ID,
+            'status' => $task->Status,
+        ];
+    }
+
+    /**
+     * Get update content for a long-running task
+     *
+     * @param string $token
+     * @param array  $environment
+     * @param int    $taskID
+     * @return array
+     */
+    public function stream_update($token, $environment, $taskID)
+    {
+        $result = $this->initialize($token, $environment);
+        if ($result) return $result;
+
+        /** @var BackgroundTask $task */
+        $task = BackgroundTask::get()->byID($taskID);
+        if (!$task) {
+            return [
+                'output' => 'No task',
+                'task'   => $taskID,
+                'status' => 'Error',
+            ];
+        }
+
+        return [
+            'output' => $task->getOutput(),
+            'task'   => $taskID,
+            'status' => $task->Status,
+        ];
+    }
 }
 
 // Processing request
 if (array_key_exists('REQUEST_METHOD', $_SERVER) && $_SERVER['REQUEST_METHOD'] == 'POST') {
     $rpc_server = new WebConsoleRPCServer();
     $rpc_server->Execute();
-}
-else if (!$IS_CONFIGURED) {
-?>
-<!DOCTYPE html>
-<html>
+} else if (!$IS_CONFIGURED) {
+    ?>
+    <!DOCTYPE html>
+    <html>
     <head>
         <!-- @include head.html -->
-        <style type="text/css"><!-- @include all.min.css --></style>
+        <style type="text/css"><!--
+            @include all.min.css --></style>
     </head>
     <body>
-        <div class="configure">
-            <p>Web Console must be configured before use:</p>
-            <ul>
-                <li>Open Web Console PHP file in your favorite text editor.</li>
-                <li>At the beginning of the file enter your <span class="variable">$USER</span> and <span class="variable">$PASSWORD</span> credentials, edit any other settings that you like (see description in the comments).</li>
-                <li>Upload changed file to the web server and open it in the browser.</li>
-            </ul>
-            <p>For more information visit Web Console website: <a href="http://web-console.org">http://web-console.org</a></p>
-        </div>
+    <div class="configure">
+        <p>Web Console must be configured before use:</p>
+        <ul>
+            <li>Open Web Console PHP file in your favorite text editor.</li>
+            <li>At the beginning of the file enter your <span class="variable">$USER</span> and <span class="variable">$PASSWORD</span>
+                credentials, edit any other settings that you like (see description in the comments).
+            </li>
+            <li>Upload changed file to the web server and open it in the browser.</li>
+        </ul>
+        <p>For more information visit Web Console website: <a href="http://web-console.org">http://web-console.org</a>
+        </p>
+    </div>
     </body>
-</html>
-<?php
-}
-else { ?>
-<!DOCTYPE html>
-<html class="no-js">
+    </html>
+    <?php
+} else { ?>
+    <!DOCTYPE html>
+    <html class="no-js">
     <head>
         <!-- @include head.html -->
-        <style type="text/css"><!-- @include all.min.css --></style>
+        <style type="text/css"><!--
+            @include all.min.css --></style>
         <script type="text/javascript"><!-- @include all.min.js --></script>
     </head>
     <body></body>
-</html>
+    </html>
 <?php } ?>

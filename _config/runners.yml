@@ -1,0 +1,7 @@
+---
+Name: webconsole-runners
+---
+# Use basic proc runner as default
+SilverStripe\Core\Injector\Injector:
+  TractorCow\WebConsole\Process\BackgroundRunner:
+    class: TractorCow\WebConsole\Process\ProcBackgroundRunner

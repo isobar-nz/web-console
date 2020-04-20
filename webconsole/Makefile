@@ -1,13 +1,4 @@
-all: serve-src
-
-serve-src:
-	@php -S localhost:8000 -t src
-
-serve-release:
-	@php -S localhost:8000 -t release
-
+install:
+	npm install
 build:
-	@grunt
-
-pull:
-	@git submodule foreach git pull
+	./node_modules/.bin/grunt
