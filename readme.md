@@ -28,3 +28,6 @@ will be run in a separate process, and the frontend javascript will poll
 the server for output (don't refresh the page while this is running though!).
 
 run `stream --help` in the console for help.
+
+Note: You don't need to install crontask, as webconsole has it's own
+process control based on Symfony.
