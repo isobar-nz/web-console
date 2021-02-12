@@ -10,6 +10,14 @@ class ConsoleController extends Controller
 {
     private static $url_segment = 'webconsole';
 
+    public function index()
+    {
+        if (!Permission::check('ADMIN')) {
+            return Security::permissionFailure($this, 'You must be admin to use this module');
+        }
+        return $this;
+    }
+
     private static $allowed_actions = [
         'callback',
     ];
