@@ -17,7 +17,7 @@ class ConsoleController extends Controller
     public function callback()
     {
         if (!Permission::check('ADMIN')) {
-            Security::permissionFailure($this, 'You must be admin to use this module');
+            return Security::permissionFailure($this, 'You must be admin to use this module');
         }
 
         // Permission approved
